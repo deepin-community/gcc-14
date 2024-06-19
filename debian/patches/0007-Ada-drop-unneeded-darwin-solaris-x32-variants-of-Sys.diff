@@ -1,0 +1,472 @@
+From 943270964c66eee60fe3f75659978479ad2d54ae Mon Sep 17 00:00:00 2001
+From: Nicolas Boulenguez <nicolas.boulenguez@free.fr>
+Date: Sun, 21 Apr 2024 19:52:28 +0200
+Subject: [PATCH 7/9] Ada: drop unneeded darwin, solaris, x32 variants of
+ System.OS_Primitives
+
+---
+ gcc/ada/Makefile.rtl                  |  14 +--
+ gcc/ada/libgnat/s-osprim__darwin.adb  | 130 --------------------------
+ gcc/ada/libgnat/s-osprim__solaris.adb | 115 -----------------------
+ gcc/ada/libgnat/s-osprim__x32.adb     | 123 ------------------------
+ 4 files changed, 7 insertions(+), 375 deletions(-)
+ delete mode 100644 gcc/ada/libgnat/s-osprim__darwin.adb
+ delete mode 100644 gcc/ada/libgnat/s-osprim__solaris.adb
+ delete mode 100644 gcc/ada/libgnat/s-osprim__x32.adb
+
+diff --git a/src/gcc/ada/Makefile.rtl b/src/gcc/ada/Makefile.rtl
+index 82d01b2..1f339f3 100644
+--- a/src/gcc/ada/Makefile.rtl
++++ b/src/gcc/ada/Makefile.rtl
+@@ -1461,7 +1461,7 @@ ifeq ($(strip $(filter-out sparc% sun solaris%,$(target_cpu) $(target_vendor) $(
+   s-mudido.adb<libgnarl/s-mudido__affinity.adb \
+   s-osinte.adb<libgnarl/s-osinte__solaris.adb \
+   s-osinte.ads<libgnarl/s-osinte__solaris.ads \
+-  s-osprim.adb<libgnat/s-osprim__solaris.adb \
++  s-osprim.adb<libgnat/s-osprim__unix.adb \
+   s-taprop.adb<libgnarl/s-taprop__solaris.adb \
+   s-tasinf.adb<libgnarl/s-tasinf__solaris.adb \
+   s-tasinf.ads<libgnarl/s-tasinf__solaris.ads \
+@@ -1504,7 +1504,7 @@ ifeq ($(strip $(filter-out %86 %x86_64 solaris2%,$(target_cpu) $(target_os))),)
+   s-mudido.adb<libgnarl/s-mudido__affinity.adb \
+   s-osinte.adb<libgnarl/s-osinte__solaris.adb \
+   s-osinte.ads<libgnarl/s-osinte__solaris.ads \
+-  s-osprim.adb<libgnat/s-osprim__solaris.adb \
++  s-osprim.adb<libgnat/s-osprim__unix.adb \
+   s-taprop.adb<libgnarl/s-taprop__solaris.adb \
+   s-tasinf.adb<libgnarl/s-tasinf__solaris.adb \
+   s-tasinf.ads<libgnarl/s-tasinf__solaris.ads \
+@@ -2619,7 +2619,7 @@ ifeq ($(strip $(filter-out %x32 linux%,$(target_cpu) $(target_os))),)
+   s-mudido.adb<libgnarl/s-mudido__affinity.adb \
+   s-osinte.ads<libgnarl/s-osinte__linux.ads \
+   s-osinte.adb<libgnarl/s-osinte__x32.adb \
+-  s-osprim.adb<libgnat/s-osprim__x32.adb \
++  s-osprim.adb<libgnat/s-osprim__rtems.adb \
+   s-taprop.adb<libgnarl/s-taprop__linux.adb \
+   s-tasinf.ads<libgnarl/s-tasinf__linux.ads \
+   s-tasinf.adb<libgnarl/s-tasinf__linux.adb \
+@@ -2703,7 +2703,7 @@ ifeq ($(strip $(filter-out darwin%,$(target_os))),)
+   ifeq ($(strip $(filter-out %86,$(target_cpu))),)
+     LIBGNAT_TARGET_PAIRS += \
+       s-intman.adb<libgnarl/s-intman__susv3.adb \
+-      s-osprim.adb<libgnat/s-osprim__darwin.adb \
++      s-osprim.adb<libgnat/s-osprim__rtems.adb \
+       $(ATOMICS_TARGET_PAIRS) \
+       system.ads<libgnat/system-darwin-x86.ads
+ 
+@@ -2722,7 +2722,7 @@ ifeq ($(strip $(filter-out darwin%,$(target_os))),)
+   ifeq ($(strip $(filter-out %x86_64,$(target_cpu))),)
+     LIBGNAT_TARGET_PAIRS += \
+       s-intman.adb<libgnarl/s-intman__susv3.adb \
+-      s-osprim.adb<libgnat/s-osprim__darwin.adb \
++      s-osprim.adb<libgnat/s-osprim__rtems.adb \
+       a-exetim.ads<libgnarl/a-exetim__default.ads \
+       a-exetim.adb<libgnarl/a-exetim__darwin.adb \
+       $(ATOMICS_TARGET_PAIRS) \
+@@ -2769,7 +2769,7 @@ ifeq ($(strip $(filter-out darwin%,$(target_os))),)
+   ifeq ($(strip $(filter-out arm,$(target_cpu))),)
+     LIBGNAT_TARGET_PAIRS += \
+       s-intman.adb<libgnarl/s-intman__susv3.adb \
+-      s-osprim.adb<libgnat/s-osprim__darwin.adb \
++      s-osprim.adb<libgnat/s-osprim__rtems.adb \
+       $(ATOMICS_TARGET_PAIRS) \
+       $(ATOMICS_BUILTINS_TARGET_PAIRS)
+ 
+@@ -2782,7 +2782,7 @@ ifeq ($(strip $(filter-out darwin%,$(target_os))),)
+       a-nallfl.ads<libgnat/a-nallfl__wraplf.ads \
+       s-intman.adb<libgnarl/s-intman__susv3.adb \
+       s-dorepr.adb<libgnat/s-dorepr__fma.adb \
+-      s-osprim.adb<libgnat/s-osprim__darwin.adb \
++      s-osprim.adb<libgnat/s-osprim__rtems.adb \
+       $(ATOMICS_TARGET_PAIRS) \
+       $(ATOMICS_BUILTINS_TARGET_PAIRS) \
+       $(GNATRTL_128BIT_PAIRS)
+diff --git a/src/gcc/ada/libgnat/s-osprim__darwin.adb b/src/gcc/ada/libgnat/s-osprim__darwin.adb
+deleted file mode 100644
+index 5f75688..0000000
+--- a/src/gcc/ada/libgnat/s-osprim__darwin.adb
++++ /dev/null
+@@ -1,130 +0,0 @@
+-------------------------------------------------------------------------------
+---                                                                          --
+---                 GNAT RUN-TIME LIBRARY (GNARL) COMPONENTS                 --
+---                                                                          --
+---                  S Y S T E M . O S _ P R I M I T I V E S                 --
+---                                                                          --
+---                                  B o d y                                 --
+---                                                                          --
+---          Copyright (C) 1998-2024, Free Software Foundation, Inc.         --
+---                                                                          --
+--- GNARL is free software; you can  redistribute it  and/or modify it under --
+--- terms of the  GNU General Public License as published  by the Free Soft- --
+--- ware  Foundation;  either version 3,  or (at your option) any later ver- --
+--- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
+--- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
+--- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
+---                                                                          --
+--- As a special exception under Section 7 of GPL version 3, you are granted --
+--- additional permissions described in the GCC Runtime Library Exception,   --
+--- version 3.1, as published by the Free Software Foundation.               --
+---                                                                          --
+--- You should have received a copy of the GNU General Public License and    --
+--- a copy of the GCC Runtime Library Exception along with this program;     --
+--- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+--- <http://www.gnu.org/licenses/>.                                          --
+---                                                                          --
+--- GNARL was developed by the GNARL team at Florida State University.       --
+--- Extensive contributions were provided by Ada Core Technologies, Inc.     --
+---                                                                          --
+-------------------------------------------------------------------------------
+-
+---  This version is for darwin
+-
+-with System.C_Time;
+-package body System.OS_Primitives is
+-
+-   --  ??? These definitions are duplicated from System.OS_Interface
+-   --  because we don't want to depend on any package. Consider removing
+-   --  these declarations in System.OS_Interface and move these ones in
+-   --  the spec.
+-
+-   type struct_timezone is record
+-      tz_minuteswest  : Integer;
+-      tz_dsttime   : Integer;
+-   end record;
+-   pragma Convention (C, struct_timezone);
+-   type struct_timezone_ptr is access all struct_timezone;
+-
+-   function gettimeofday
+-     (tv : not null access C_Time.timeval;
+-      tz : struct_timezone_ptr) return Integer;
+-   pragma Import (C, gettimeofday, "gettimeofday");
+-
+-   function nanosleep (rqtp, rmtp : not null access C_Time.timespec)
+-                      return Integer;
+-   pragma Import (C, nanosleep, "nanosleep");
+-
+-   -----------
+-   -- Clock --
+-   -----------
+-
+-   function Clock return Duration is
+-      TV     : aliased C_Time.timeval;
+-
+-      Result : Integer;
+-      pragma Unreferenced (Result);
+-
+-   begin
+-      --  The return codes for gettimeofday are as follows (from man pages):
+-      --    EPERM  settimeofday is called by someone other than the superuser
+-      --    EINVAL Timezone (or something else) is invalid
+-      --    EFAULT One of tv or tz pointed outside accessible address space
+-
+-      --  None of these codes signal a potential clock skew, hence the return
+-      --  value is never checked.
+-
+-      Result := gettimeofday (TV'Access, null);
+-      return C_Time.To_Duration (TV);
+-   end Clock;
+-
+-   -----------------
+-   -- Timed_Delay --
+-   -----------------
+-
+-   procedure Timed_Delay
+-     (Time : Duration;
+-      Mode : Integer)
+-   is
+-      Request    : aliased C_Time.timespec;
+-      Remaind    : aliased C_Time.timespec;
+-      Rel_Time   : Duration;
+-      Abs_Time   : Duration;
+-      Base_Time  : constant Duration := Clock;
+-      Check_Time : Duration := Base_Time;
+-
+-      Result : Integer;
+-      pragma Unreferenced (Result);
+-
+-   begin
+-      if Mode = Relative then
+-         Rel_Time := Time;
+-         Abs_Time := Time + Check_Time;
+-      else
+-         Rel_Time := Time - Check_Time;
+-         Abs_Time := Time;
+-      end if;
+-
+-      if Rel_Time > 0.0 then
+-         loop
+-            Request := C_Time.To_Timespec (Rel_Time);
+-            Result := nanosleep (Request'Access, Remaind'Access);
+-            Check_Time := Clock;
+-
+-            exit when Abs_Time <= Check_Time or else Check_Time < Base_Time;
+-
+-            Rel_Time := Abs_Time - Check_Time;
+-         end loop;
+-      end if;
+-   end Timed_Delay;
+-
+-   ----------------
+-   -- Initialize --
+-   ----------------
+-
+-   procedure Initialize is
+-   begin
+-      null;
+-   end Initialize;
+-
+-end System.OS_Primitives;
+diff --git a/src/gcc/ada/libgnat/s-osprim__solaris.adb b/src/gcc/ada/libgnat/s-osprim__solaris.adb
+deleted file mode 100644
+index 70c8dc4..0000000
+--- a/src/gcc/ada/libgnat/s-osprim__solaris.adb
++++ /dev/null
+@@ -1,115 +0,0 @@
+-------------------------------------------------------------------------------
+---                                                                          --
+---                 GNAT RUN-TIME LIBRARY (GNARL) COMPONENTS                 --
+---                                                                          --
+---                  S Y S T E M . O S _ P R I M I T I V E S                 --
+---                                                                          --
+---                                  B o d y                                 --
+---                                                                          --
+---          Copyright (C) 1998-2024, Free Software Foundation, Inc.         --
+---                                                                          --
+--- GNARL is free software; you can  redistribute it  and/or modify it under --
+--- terms of the  GNU General Public License as published  by the Free Soft- --
+--- ware  Foundation;  either version 3,  or (at your option) any later ver- --
+--- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
+--- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
+--- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
+---                                                                          --
+--- As a special exception under Section 7 of GPL version 3, you are granted --
+--- additional permissions described in the GCC Runtime Library Exception,   --
+--- version 3.1, as published by the Free Software Foundation.               --
+---                                                                          --
+--- You should have received a copy of the GNU General Public License and    --
+--- a copy of the GCC Runtime Library Exception along with this program;     --
+--- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+--- <http://www.gnu.org/licenses/>.                                          --
+---                                                                          --
+--- GNARL was developed by the GNARL team at Florida State University.       --
+--- Extensive contributions were provided by Ada Core Technologies, Inc.     --
+---                                                                          --
+-------------------------------------------------------------------------------
+-
+---  This version uses gettimeofday and select
+---  This file is suitable for Solaris (32 and 64 bits).
+-
+-with System.C_Time;
+-
+-package body System.OS_Primitives is
+-
+-   --  ??? These definitions are duplicated from System.OS_Interface
+-   --  because we don't want to depend on any package. Consider removing
+-   --  these declarations in System.OS_Interface and move these ones in
+-   --  the spec.
+-
+-   procedure gettimeofday
+-     (tv : not null access C_Time.timeval;
+-      tz : Address := Null_Address);
+-   pragma Import (C, gettimeofday, "gettimeofday");
+-
+-   procedure C_select
+-     (n         : Integer := 0;
+-      readfds,
+-      writefds,
+-      exceptfds : Address := Null_Address;
+-      timeout   : not null access C_Time.timeval);
+-   pragma Import (C, C_select, "select");
+-
+-   -----------
+-   -- Clock --
+-   -----------
+-
+-   function Clock return Duration is
+-      TV : aliased C_Time.timeval;
+-
+-   begin
+-      gettimeofday (TV'Access);
+-      return C_Time.To_Duration (TV);
+-   end Clock;
+-
+-   -----------------
+-   -- Timed_Delay --
+-   -----------------
+-
+-   procedure Timed_Delay
+-     (Time : Duration;
+-      Mode : Integer)
+-   is
+-      Rel_Time   : Duration;
+-      Abs_Time   : Duration;
+-      Base_Time  : constant Duration := Clock;
+-      Check_Time : Duration := Base_Time;
+-      timeval    : aliased C_Time.timeval;
+-
+-   begin
+-      if Mode = Relative then
+-         Rel_Time := Time;
+-         Abs_Time := Time + Check_Time;
+-      else
+-         Rel_Time := Time - Check_Time;
+-         Abs_Time := Time;
+-      end if;
+-
+-      if Rel_Time > 0.0 then
+-         loop
+-            timeval := C_Time.To_Timeval (Rel_Time);
+-
+-            C_select (timeout => timeval'Unchecked_Access);
+-            Check_Time := Clock;
+-
+-            exit when Abs_Time <= Check_Time or else Check_Time < Base_Time;
+-
+-            Rel_Time := Abs_Time - Check_Time;
+-         end loop;
+-      end if;
+-   end Timed_Delay;
+-
+-   ----------------
+-   -- Initialize --
+-   ----------------
+-
+-   procedure Initialize is
+-   begin
+-      null;
+-   end Initialize;
+-
+-end System.OS_Primitives;
+diff --git a/src/gcc/ada/libgnat/s-osprim__x32.adb b/src/gcc/ada/libgnat/s-osprim__x32.adb
+deleted file mode 100644
+index 644c41c..0000000
+--- a/src/gcc/ada/libgnat/s-osprim__x32.adb
++++ /dev/null
+@@ -1,123 +0,0 @@
+-------------------------------------------------------------------------------
+---                                                                          --
+---                 GNAT RUN-TIME LIBRARY (GNARL) COMPONENTS                 --
+---                                                                          --
+---                  S Y S T E M . O S _ P R I M I T I V E S                 --
+---                                                                          --
+---                                  B o d y                                 --
+---                                                                          --
+---             Copyright (C) 2013-2024, Free Software Foundation, Inc.      --
+---                                                                          --
+--- GNARL is free software; you can  redistribute it  and/or modify it under --
+--- terms of the  GNU General Public License as published  by the Free Soft- --
+--- ware  Foundation;  either version 3,  or (at your option) any later ver- --
+--- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
+--- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
+--- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
+---                                                                          --
+--- As a special exception under Section 7 of GPL version 3, you are granted --
+--- additional permissions described in the GCC Runtime Library Exception,   --
+--- version 3.1, as published by the Free Software Foundation.               --
+---                                                                          --
+--- You should have received a copy of the GNU General Public License and    --
+--- a copy of the GCC Runtime Library Exception along with this program;     --
+--- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+--- <http://www.gnu.org/licenses/>.                                          --
+---                                                                          --
+--- GNARL was developed by the GNARL team at Florida State University.       --
+--- Extensive contributions were provided by Ada Core Technologies, Inc.     --
+---                                                                          --
+-------------------------------------------------------------------------------
+-
+---  This version is for Linux/x32
+-
+-with System.C_Time;
+-
+-package body System.OS_Primitives is
+-
+-   --  ??? These definitions are duplicated from System.OS_Interface
+-   --  because we don't want to depend on any package. Consider removing
+-   --  these declarations in System.OS_Interface and move these ones in
+-   --  the spec.
+-
+-   function nanosleep (rqtp, rmtp : not null access C_Time.timespec)
+-                      return Integer;
+-   pragma Import (C, nanosleep, "nanosleep");
+-
+-   -----------
+-   -- Clock --
+-   -----------
+-
+-   function Clock return Duration is
+-      TV     : aliased C_Time.timeval;
+-      Result : Integer;
+-      pragma Unreferenced (Result);
+-
+-      function gettimeofday
+-        (Tv : access C_Time.timeval;
+-         Tz : System.Address := System.Null_Address) return Integer;
+-      pragma Import (C, gettimeofday, "gettimeofday");
+-
+-   begin
+-      --  The return codes for gettimeofday are as follows (from man pages):
+-      --    EPERM  settimeofday is called by someone other than the superuser
+-      --    EINVAL Timezone (or something else) is invalid
+-      --    EFAULT One of tv or tz pointed outside accessible address space
+-
+-      --  None of these codes signal a potential clock skew, hence the return
+-      --  value is never checked.
+-
+-      Result := gettimeofday (TV'Access, System.Null_Address);
+-      return C_Time.To_Duration (TV);
+-   end Clock;
+-
+-   -----------------
+-   -- Timed_Delay --
+-   -----------------
+-
+-   procedure Timed_Delay
+-     (Time : Duration;
+-      Mode : Integer)
+-   is
+-      Request    : aliased C_Time.timespec;
+-      Remaind    : aliased C_Time.timespec;
+-      Rel_Time   : Duration;
+-      Abs_Time   : Duration;
+-      Base_Time  : constant Duration := Clock;
+-      Check_Time : Duration := Base_Time;
+-
+-      Result : Integer;
+-      pragma Unreferenced (Result);
+-
+-   begin
+-      if Mode = Relative then
+-         Rel_Time := Time;
+-         Abs_Time := Time + Check_Time;
+-      else
+-         Rel_Time := Time - Check_Time;
+-         Abs_Time := Time;
+-      end if;
+-
+-      if Rel_Time > 0.0 then
+-         loop
+-            Request := C_Time.To_Timespec (Rel_Time);
+-            Result := nanosleep (Request'Access, Remaind'Access);
+-            Check_Time := Clock;
+-
+-            exit when Abs_Time <= Check_Time or else Check_Time < Base_Time;
+-
+-            Rel_Time := Abs_Time - Check_Time;
+-         end loop;
+-      end if;
+-   end Timed_Delay;
+-
+-   ----------------
+-   -- Initialize --
+-   ----------------
+-
+-   procedure Initialize is
+-   begin
+-      null;
+-   end Initialize;
+-
+-end System.OS_Primitives;
+-- 
+2.39.2
+
